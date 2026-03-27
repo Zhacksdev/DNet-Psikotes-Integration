@@ -60,23 +60,29 @@ export interface DashboardApiResponse {
 // API Service functions
 export const getDashboardData = async (): Promise<DashboardApiResponse> => {
   try {
-    console.log('🔍 [dashboard] Fetching dashboard data...');
-    const response = await api.get<DashboardApiResponse>('/dashboard');
-    console.log('✅ [dashboard] Dashboard data received:', response.data);
+    console.log("🔍 [dashboard] Fetching dashboard data...");
+    const response = await api.get<DashboardApiResponse>("/dashboard");
+    console.log("✅ [dashboard] Dashboard data received:", response.data);
     return response.data;
   } catch (error) {
-    console.error('❌ [dashboard] Error fetching dashboard data:', error);
+    console.error("❌ [dashboard] Error fetching dashboard data:", error);
     if (axios.isAxiosError(error)) {
-      console.error('❌ [dashboard] Response:', error.response?.data);
-      console.error('❌ [dashboard] Status:', error.response?.status);
-      throw new Error(error.response?.data?.message || 'Gagal mengambil data dashboard');
+      console.error("❌ [dashboard] Response:", error.response?.data);
+      console.error("❌ [dashboard] Status:", error.response?.status);
+      throw new Error(
+        error.response?.data?.message || "Gagal mengambil data dashboard"
+      );
     }
-    throw new Error('Terjadi error tidak dikenal saat mengambil data dashboard');
+    throw new Error(
+      "Terjadi error tidak dikenal saat mengambil data dashboard"
+    );
   }
 };
 
 // Convert API data to StatCard format
-export const convertApiDataToStats = (apiData: DashboardApiResponse['data']): StatCard[] => [
+export const convertApiDataToStats = (
+  apiData: DashboardApiResponse["data"]
+): StatCard[] => [
   {
     title: "Total Kandidat",
     value: apiData.summary.total_candidates,
@@ -140,14 +146,16 @@ export const getStats = (): StatCard[] => [
 ];
 
 // Convert API recent activities to TestActivity format
-export const convertApiDataToActivities = (apiData: DashboardApiResponse['data']): TestActivity[] => {
+export const convertApiDataToActivities = (
+  apiData: DashboardApiResponse["data"]
+): TestActivity[] => {
   return apiData.recent_activities.map((activity, index) => ({
     id: (index + 1).toString(),
     name: activity.user_name,
     position: "System Activity", // API tidak menyediakan position
     types: ["Activity"],
     status: "Selesai" as const,
-    date: activity.timestamp.split(' ')[0], // Ambil hanya tanggal
+    date: activity.timestamp.split(" ")[0], // Ambil hanya tanggal
   }));
 };
 

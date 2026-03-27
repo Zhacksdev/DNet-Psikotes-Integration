@@ -1,15 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   MoreVertical,
-  Briefcase,
-  UserCheck,
-  GraduationCap,
-  Heart,
   Edit,
   Trash2,
+  Briefcase,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useTests } from "../hooks/use-test-package";
 import TableSkeleton from "./table-skeleton";
@@ -20,22 +19,36 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { ICON_MAP } from "@/lib/icon-mapping";
 
-const CATEGORY_ICON: Record<string, React.ReactNode> = {
-  Managerial: <Briefcase size={22} className="text-blue-400" />,
-  "All Candidates": <UserCheck size={22} className="text-green-400" />,
-  "Fresh Graduates": <GraduationCap size={22} className="text-yellow-400" />,
-  "HR Staff": <Heart size={22} className="text-red-400" />,
-};
-
+/* ======================================================================
+ * TYPE STYLE
+ * ====================================================================== */
 const TYPE_STYLE: Record<string, string> = {
   DISC: "bg-blue-100 text-blue-700",
   CAAS: "bg-yellow-100 text-yellow-800",
-  "teliti": "bg-green-100 text-green-700",
+  teliti: "bg-green-100 text-green-700",
 };
 
-export default function TestTable() {
- const { tests, loading, error, handleDelete } = useTests();
+/* ======================================================================
+ * COMPONENT
+ * ====================================================================== */
+export default function TestTable({
+  onEdit,
+}: {
+  onEdit: (testId: string) => void;
+}) {
+  const { tests, loading, error, handleDelete } = useTests();
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
+  const totalPages = Math.ceil(tests.length / pageSize);
+  const startIndex = (page - 1) * pageSize;
+  const paginatedTests = tests.slice(startIndex, startIndex + pageSize);
+
+  const handlePrev = () => setPage((p) => Math.max(p - 1, 1));
+  const handleNext = () => setPage((p) => Math.min(p + 1, totalPages));
 
   if (loading) return <TableSkeleton />;
   if (error) return <div className="text-red-500">{error}</div>;
@@ -57,12 +70,12 @@ export default function TestTable() {
             </tr>
           </thead>
           <tbody>
-            {tests.map((test, i) => (
-              <tr key={`desktop-${test.id ?? i}`} className="bg-white">
+            {paginatedTests.map((test, i) => (
+              <tr key={`desktop-${test.id ?? i}`}>
                 {/* Test Name */}
                 <td className="px-6 py-4 flex items-center gap-3 align-middle">
-                  <span className="w-12 h-12 flex items-center justify-center rounded-full bg-white shadow">
-                    {CATEGORY_ICON[test.category] ?? (
+                  <span className="w-12 h-12 flex items-center justify-center rounded-full bg-white shadow overflow-hidden">
+                    {ICON_MAP[test.icon_path as keyof typeof ICON_MAP] ?? (
                       <Briefcase size={25} className="text-gray-400" />
                     )}
                   </span>
@@ -70,7 +83,6 @@ export default function TestTable() {
                     <div className="font-semibold text-gray-900 truncate">
                       {test.name}
                     </div>
-                    <div className="text-xs text-gray-500">{test.category}</div>
                   </div>
                 </td>
 
@@ -81,7 +93,7 @@ export default function TestTable() {
                       <span
                         key={`desktop-${type}-${idx}`}
                         className={cn(
-                          "px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap",
+                          "inline-block px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap",
                           TYPE_STYLE[type] || "bg-gray-100 text-gray-500"
                         )}
                       >
@@ -92,12 +104,12 @@ export default function TestTable() {
                 </td>
 
                 {/* Questions */}
-                <td className="px-6 py-4 text-[15px] text-gray-900 font-medium align-middle">
+                <td className="px-6 py-4 text-sm text-gray-900 font-medium align-middle">
                   {test.questions}
                 </td>
 
                 {/* Duration */}
-                <td className="px-6 py-4 text-[15px] text-gray-900 font-medium align-middle">
+                <td className="px-6 py-4 text-sm text-gray-900 font-medium align-middle">
                   {test.duration}
                 </td>
 
@@ -117,7 +129,7 @@ export default function TestTable() {
                       align="end"
                       className="min-w-[160px] rounded-xl py-2 px-1 shadow-lg border border-gray-100"
                     >
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onEdit(test.id)}>
                         <Edit className="mr-2 h-4 w-4" /> Edit Package
                       </DropdownMenuItem>
                       <DropdownMenuItem
@@ -137,15 +149,15 @@ export default function TestTable() {
 
       {/* MOBILE CARD */}
       <div className="md:hidden space-y-6">
-        {tests.map((test, i) => (
+        {paginatedTests.map((test, i) => (
           <div
             key={`mobile-${test.id ?? i}`}
             className="bg-white rounded-lg shadow-sm p-4 space-y-6"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow">
-                  {CATEGORY_ICON[test.category] || (
+                <span className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow overflow-hidden">
+                  {ICON_MAP[test.icon_path as keyof typeof ICON_MAP] ?? (
                     <Briefcase size={20} className="text-gray-400" />
                   )}
                 </span>
@@ -153,7 +165,6 @@ export default function TestTable() {
                   <div className="font-semibold text-gray-900 truncate">
                     {test.name}
                   </div>
-                  <div className="text-xs text-gray-500">{test.category}</div>
                 </div>
               </div>
               <DropdownMenu>
@@ -166,10 +177,13 @@ export default function TestTable() {
                   align="end"
                   className="min-w-[120px] rounded-lg"
                 >
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onEdit(test.id)}>
                     <Edit className="mr-2 h-4 w-4" /> Edit Package
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="text-red-500">
+                  <DropdownMenuItem
+                    className="text-red-500"
+                    onClick={() => handleDelete(test.id)}
+                  >
                     <Trash2 className="mr-2 h-4 w-4" /> Delete
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -211,6 +225,53 @@ export default function TestTable() {
           </div>
         ))}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-8 text-sm text-gray-600">
+          <div className="flex items-center gap-2 mx-auto md:mx-0">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 1}
+              onClick={handlePrev}
+              className="flex items-center gap-1"
+            >
+              <ChevronLeft className="w-4 h-4" /> Prev
+            </Button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
+              <Button
+                key={num}
+                size="sm"
+                variant={page === num ? "default" : "outline"}
+                onClick={() => setPage(num)}
+                className={cn(
+                  "w-8 h-8",
+                  page === num && "bg-blue-500 hover:bg-blue-600 text-white"
+                )}
+              >
+                {num}
+              </Button>
+            ))}
+
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === totalPages}
+              onClick={handleNext}
+              className="flex items-center gap-1"
+            >
+              Next <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+
+          <div className="hidden md:block">
+            Showing <span className="font-semibold">{page}</span> of{" "}
+            <span className="font-semibold">{totalPages}</span> Pages
+          </div>
+        </div>
+      )}
     </>
   );
 }

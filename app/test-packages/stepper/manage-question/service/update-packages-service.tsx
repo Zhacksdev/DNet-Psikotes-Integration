@@ -37,7 +37,8 @@ export const updatePackageService = {
 
       const body = {
         name: saved.name,
-        target_position: saved.target_position,
+        icon_path: saved.icon_path,
+        target_position: "Staff", // Default position untuk update section
         sections: updatedSections,
       };
 
@@ -85,7 +86,8 @@ export const updatePackageService = {
 
       const body = {
         name: saved.name,
-        target_position: saved.target_position,
+        icon_path: saved.icon_path,
+        target_position: "Staff", // Default position untuk update section
         sections: updatedSections,
       };
 

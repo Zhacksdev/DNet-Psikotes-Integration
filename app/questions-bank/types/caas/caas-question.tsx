@@ -22,6 +22,7 @@ import AddQuestionDialog from "./dialogs/add-question-dialog";
 import EditQuestionDialog from "./dialogs/edit-question-dialog";
 import ImportCsvDialog from "./dialogs/import-csv-dialog";
 import { useCaasQuestions } from "./hooks/use-caas-question"; // Import hook
+import { importQuestionsFromXlsx } from "./services/caas-question-service";
 
 // ✅ definisi props biar jelas - props simplified karena logic dipindah ke hook
 interface CaasQuestionsStepProps {
@@ -108,58 +109,24 @@ export default function CaasQuestionsStep({
     }
   };
 
-  const parseCsv = async (file: File): Promise<StepQuestion[]> => {
-    const raw = await file.text();
-    const lines = raw
-      .split(/\r?\n/)
-      .map((l) => l.trim())
-      .filter(Boolean);
-
-    if (lines.length === 0) return [];
-
-    const headerCols = lines[0].split(/[,;]\s*/);
-    const headerLooksLike =
-      headerCols.some((h) => /^text$/i.test(h)) ||
-      /(^|,|\|)text($|,|\|)/i.test(lines[0]);
-
-    const rows = headerLooksLike ? lines.slice(1) : lines;
-
-    const out: StepQuestion[] = [];
-    for (const row of rows) {
-      const cols = row
-        .split(/[,;](?=(?:[^"]*"[^"]*")*[^"]*$)/)
-        .map((c) => c.replace(/^"|"$/g, "").trim());
-
-      const [text] = cols;
-      if (!text) continue;
-    }
-    return out;
-  };
-
   const handleUploadCSV = async (file: File) => {
     setUploadError(null);
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase();
-      if (ext !== "csv") {
-        throw new Error("Hanya mendukung .csv untuk saat ini.");
-      }
-      const qs = await parseCsv(file);
-      if (qs.length === 0) {
-        throw new Error(
-          "CSV kosong atau tidak valid. Minimal kolom `text` harus ada."
-        );
-      }
+      // kirim langsung ke backend
+      const res = await importQuestionsFromXlsx(file);
+      console.log("[Import] Success:", res);
 
-      // ✅ Batch import menggunakan hook
-      for (const q of qs) {
-        const { ...questionData } = q; // Remove temporary ID
-        await addOne(questionData);
-      }
+      // refresh daftar pertanyaan setelah upload
+      await done();
 
+      // tutup dialog
       setImportOpen(false);
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : "Unknown error");
+      console.error("[Import] Error:", error);
+      setUploadError(
+        error instanceof Error ? error.message : "Gagal mengimpor file."
+      );
     } finally {
       setUploading(false);
     }
@@ -202,24 +169,24 @@ export default function CaasQuestionsStep({
         {/* Import */}
         <div className="flex items-center gap-2">
           <Button
-            className="hidden md:flex bg-blue-500 hover:bg-blue-600 text-white"
+            className="hidden md:flex bg-white hover:bg-gray-100 cursor-pointer text-black shadow-sm"
             size="sm"
             type="button"
             onClick={openImport}
             disabled={loading}
           >
-            <FileSpreadsheet className="mr-2 h-4 w-4" />
+            <FileSpreadsheet className="mr-2 h-4 w-4 text-green-600" />
             Import Question
           </Button>
           <Button
-            className="md:hidden bg-blue-500 hover:bg-blue-600 text-white"
+            className="md:hidden bg-white hover:bg-gray-100 cursor-pointer text-black shadow-sm"
             size="icon"
             type="button"
             title="Import"
             onClick={openImport}
             disabled={loading}
           >
-            <FileSpreadsheet className="h-4 w-4" />
+            <FileSpreadsheet className="h-4 w-4 text-green-600" />
           </Button>
         </div>
       </div>

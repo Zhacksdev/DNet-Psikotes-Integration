@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   MoreVertical,
@@ -11,6 +11,8 @@ import {
   Trash2,
   User,
   Edit,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useTestDistributions } from "../hooks/use-test-distribution";
 import TableSkeleton from "./table-skeleton";
@@ -39,12 +41,35 @@ const CATEGORY_ICON: Record<string, React.ReactNode> = {
 const STATUS_STYLE: Record<string, string> = {
   Completed: "bg-green-100 text-green-700",
   Ongoing: "bg-yellow-100 text-yellow-700",
+  Scheduled: "bg-blue-100 text-blue-700",
   Draft: "bg-gray-100 text-gray-700",
   Expired: "bg-red-100 text-red-700",
 };
 
 export default function DistributionTable() {
-  const { distributions, loading, error } = useTestDistributions();
+  const { distributions, loading, error, remove, refresh } = useTestDistributions();
+
+  const handleDelete = async (id: number) => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus test distribution ini?')) {
+      try {
+        await remove(id);
+        await refresh(); // Refresh data setelah delete
+      } catch (error) {
+        console.error('Error deleting distribution:', error);
+        alert('Gagal menghapus test distribution');
+      }
+    }
+  };
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
+  const totalPages = Math.ceil(distributions.length / pageSize);
+  const startIndex = (page - 1) * pageSize;
+  const paginatedData = distributions.slice(startIndex, startIndex + pageSize);
+
+  const handlePrev = () => setPage((p) => Math.max(p - 1, 1));
+  const handleNext = () => setPage((p) => Math.min(p + 1, totalPages));
 
   if (loading) return <TableSkeleton />;
   if (error) return <div className="text-red-500">{error}</div>;
@@ -70,8 +95,8 @@ export default function DistributionTable() {
             </tr>
           </thead>
           <tbody>
-            {distributions.map((d, i) => (
-              <tr key={`desktop-${d.id ?? i}`} className="bg-white">
+            {paginatedData.map((d, i) => (
+              <tr key={`desktop-${d.id ?? i}`}>
                 {/* Test Name */}
                 <td className="px-6 py-4 flex items-center gap-3">
                   <span className="w-12 h-12 flex items-center justify-center rounded-full bg-white shadow">
@@ -92,7 +117,8 @@ export default function DistributionTable() {
 
                 {/* Candidates */}
                 <td className="px-6 py-4 text-gray-700 font-medium flex items-center gap-2">
-                   <User className="w-4 h-4"></User>{d.candidatesTotal}
+                  <User className="w-4 h-4" />
+                  {d.candidatesTotal}
                 </td>
 
                 {/* Status */}
@@ -126,7 +152,10 @@ export default function DistributionTable() {
                       <DropdownMenuItem>
                         <Edit className="mr-2 h-4 w-4" /> Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-500">
+                      <DropdownMenuItem 
+                        className="text-red-500"
+                        onClick={() => handleDelete(d.id)}
+                      >
                         <Trash2 className="mr-2 h-4 w-4" /> Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -140,7 +169,7 @@ export default function DistributionTable() {
 
       {/* MOBILE CARD */}
       <div className="md:hidden space-y-6">
-        {distributions.map((d, i) => (
+        {paginatedData.map((d, i) => (
           <div
             key={`mobile-${d.id ?? i}`}
             className="bg-white rounded-lg shadow-sm p-4 space-y-6"
@@ -170,7 +199,10 @@ export default function DistributionTable() {
                   <DropdownMenuItem>
                     <Edit className="mr-2 h-4 w-4" /> Edit
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="text-red-500">
+                  <DropdownMenuItem 
+                    className="text-red-500"
+                    onClick={() => handleDelete(d.id)}
+                  >
                     <Trash2 className="mr-2 h-4 w-4" /> Delete
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -205,6 +237,53 @@ export default function DistributionTable() {
           </div>
         ))}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-8 text-sm text-gray-600">
+          <div className="flex items-center gap-2 mx-auto md:mx-0">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 1}
+              onClick={handlePrev}
+              className="flex items-center gap-1"
+            >
+              <ChevronLeft className="w-4 h-4" /> Prev
+            </Button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
+              <Button
+                key={num}
+                size="sm"
+                variant={page === num ? "default" : "outline"}
+                onClick={() => setPage(num)}
+                className={cn(
+                  "w-8 h-8",
+                  page === num && "bg-blue-500 hover:bg-blue-600 text-white"
+                )}
+              >
+                {num}
+              </Button>
+            ))}
+
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === totalPages}
+              onClick={handleNext}
+              className="flex items-center gap-1"
+            >
+              Next <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+
+          <div className="hidden md:block">
+            Showing <span className="font-semibold">{page}</span> of{" "}
+            <span className="font-semibold">{totalPages}</span> Pages
+          </div>
+        </div>
+      )}
     </>
   );
 }

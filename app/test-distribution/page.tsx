@@ -6,6 +6,7 @@ import Topbar from "@/components/TopBar";
 import TitleBar from "./components/title-bar";
 import DistributionTable from "./components/session-table";
 import { StepperCreate } from "./components/stepper";
+import { useTestDistributions } from "./hooks/use-test-distribution";
 
 // Stepper Steps
 import AddPackageStep from "./stepper/add-packages/add-packages";
@@ -20,6 +21,9 @@ export default function TestDistributionPage() {
 
   // ✅ simpan id paket di state utama
   const [packageId, setPackageId] = useState<number | null>(null);
+  
+  // Hook untuk mengelola data distributions
+  const { distributions, loading, error, create, update, remove, refresh } = useTestDistributions();
 
   // mulai bikin session baru
   function handleCreate() {
@@ -43,12 +47,21 @@ export default function TestDistributionPage() {
     }
   }
 
+  // handle finish setelah send all
+  function handleFinish() {
+    setShowStepper(false);
+    setActiveStep(null);
+    setPackageId(null);
+    // Refresh data untuk menampilkan test yang baru dibuat
+    refresh();
+  }
+
   return (
     <div className="flex min-h-screen">
       <Sidebar />
       <div className="flex flex-col flex-1 bg-white">
         <Topbar />
-        <main className="flex-1 px-8 pt-2 pb-8">
+        <main className="flex-1 px-8">
           {showStepper ? (
             <MakeSessionProvider>
               {/* Stepper progress indicator */}
@@ -69,12 +82,7 @@ export default function TestDistributionPage() {
               {activeStep === 1 && packageId !== null && (
                 <CandidatesDistributions
                   onBack={handleBack}
-                  onNext={() => {
-                    // ✅ langsung close stepper balik ke page
-                    setShowStepper(false);
-                    setActiveStep(null);
-                    setPackageId(null);
-                  }}
+                  onNext={handleFinish}
                   testPackageId={packageId}
                 />
               )}
